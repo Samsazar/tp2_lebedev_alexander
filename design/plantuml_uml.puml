@@ -1,0 +1,165 @@
+@startuml
+title Telegram UserBot Library - Class Diagram
+
+class TelegramClient {
+    - session_manager : SessionManager
+    - connection : Connection
+    - event_listeners : list[EventListener]
+    - user_self : User
+
+    + start() : None
+    + stop() : None
+    + connect() : bool
+    + disconnect() : None
+    + send_request(request : Request) : Response
+    + invoke(method : str, **params) : Response
+    + get_me() : User
+    + send_message(chat : Chat | int | str, text : str) : Message
+    + get_dialogs(limit : int) : list[Dialog]
+    + add_event_listener(listener : EventListener) : None
+    + remove_event_listener(listener : EventListener) : None
+    + dispatch_event(event : Event) : None
+}
+
+class SessionManager {
+    - session_path : str
+    - api_id : int
+    - api_hash : str
+    - auth_key : bytes
+    - user_id : int
+    - is_authorized : bool
+
+    + load() : bool
+    + save() : None
+    + create_new(api_id : int, api_hash : str) : None
+    + is_authorized() : bool
+    + set_authorized(user_id : int) : None
+    + clear() : None
+}
+
+class Connection {
+    - address : str
+    - is_connected : bool
+
+    + connect(address : str) : bool
+    + disconnect() : None
+    + send(request : Request) : None
+    + receive() : Response
+    + invoke(request : Request) : Response
+    + reconnect() : bool
+}
+
+class Request {
+    - method : str
+    - params : dict
+    - msg_id : int
+    - timestamp : datetime
+
+    + serialize() : bytes
+    + mark_sent() : None
+}
+
+class Response {
+    - data : Any
+    - request_id : int
+    - status_code : int
+    - error_message : str
+
+    + is_ok() : bool
+    + get_data() : Any
+}
+
+class Entity {
+    - id : int
+    + to_dict() : dict
+}
+
+class User {
+    - first_name : str
+    - last_name : str
+    - username : str
+    - phone : str
+    + full_name() : str
+}
+
+class Chat {
+    - title : str
+    - type : str
+    - members_count : int
+    + is_group() : bool
+}
+
+class Message {
+    - sender : User
+    - chat : Chat
+    - text : str
+    - date : datetime
+    + reply(text : str) : Message
+    + edit(new_text : str) : Message
+}
+
+class Dialog {
+    - chat : Chat
+    - unread_count : int
+    - top_message : Message
+    + mark_read() : None
+}
+
+class EventListener {
+    - event_type : type[Event]
+    - name : str
+    - filters : list[Any]
+    + matches(event : Event) : bool
+}
+
+class Event {
+    - event_type : str
+    - timestamp : datetime
+    - data : dict
+    + get_type() : str
+}
+
+class NewMessageEvent {
+    - message : Message
+    + get_text() : str
+    + get_sender() : User
+}
+
+class EditedMessageEvent {
+    - old_message : Message
+    - new_message : Message
+    + get_diff() : tuple[str, str]
+}
+
+class UserJoinedEvent {
+    - user : User
+    - chat : Chat
+    + get_user() : User
+    + get_chat() : Chat
+}
+
+' Relationships
+TelegramClient *-- SessionManager
+TelegramClient *-- Connection
+TelegramClient o-- EventListener
+TelegramClient ..> Request
+TelegramClient ..> Response
+TelegramClient ..> Event
+
+
+EventListener --> Event
+Entity <|-- User
+Entity <|-- Chat
+Entity <|-- Message
+Entity <|-- Dialog
+Event <|-- NewMessageEvent
+Event <|-- EditedMessageEvent
+Event <|-- UserJoinedEvent
+Message --> User
+Message --> Chat
+Dialog *-- Chat
+Dialog *-- Message
+UserJoinedEvent --> User
+UserJoinedEvent --> Chat
+
+@enduml

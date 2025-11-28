@@ -1,0 +1,52 @@
+@startuml
+actor "User Code" as user
+autonumber
+box "Telegram UserBot" #LightBlue
+participant "TelegramClient" as client
+participant "SessionManager" as session
+participant "Connection" as connection
+participant "EventListener" as listener
+end box
+participant "Telegram API" as api
+participant "External Server" as ext
+
+== Инициализация клиента ==
+user -> client++: Вызов start()
+client -> session++: Загрузка сессии из файла
+session -> session: Проверка данных сессии
+alt Сессия не авторизована
+session --> client--: Не авторизован
+client -> api++: Отправка данных для авторизации (send_code / sign_in)
+api --> client--: Ответ об успешной авторизации
+client -> session++: Сохранение новой сессии
+session --> client--: Сессия сохранена
+else Сессия авторизована
+session --> client--: Успешная авторизация
+end
+
+== Подключение к Telegram ==
+client -> connection++: Установить соединение с сервером
+connection -> api++: Запрос на подключение
+api --> connection--: Подключение успешно
+connection --> client--: Соединение установлено
+
+== Прослушивание входящих сообщений ==
+loop Прослушивание обновлений
+api -> connection++: Отправка нового входящего сообщения
+connection --> client--: Получено новое сообщение
+client -> listener++: Генерация события NewMessageEvent
+listener -> user++: Вызов пользовательского обработчика события
+user -> ext++: Отправка данных о новом сообщении на сервер
+ext -> ext: Обработка запроса
+ext --> user--: Ответ сервера
+end
+
+== Завершение работы ==
+user -> client: Вызов stop()
+client -> connection++: Отключение соединения
+connection --> client--: Соединение закрыто
+client -> session++: Сохранение состояния сессии
+session --> client--: Состояние сохранено
+client --> user--: Остановка завершена
+
+@enduml
