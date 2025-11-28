@@ -90,6 +90,8 @@ class TdClient:
         """Start background receiver"""
         self._receiver_task = asyncio.create_task(self._receiver_loop())
 
+        await self.login()
+
     async def stop(self):
         """Stop background receiver"""
         if self._receiver_task:
